@@ -14,3 +14,5 @@ def resize_images(path: str, save_dir: str):
 
 resize_images('Q2/train/3', 'Q2/resized_train_3')
 resize_images('Q2/train/4', 'Q2/resized_train_4')
+resize_images('Q2/val/3', 'Q2/resized_test_3')
+resize_images('Q2/val/4', 'Q2/resized_test_4')

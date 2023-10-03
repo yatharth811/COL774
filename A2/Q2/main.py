@@ -5,7 +5,6 @@ import pandas as pd
 import numpy as np
 import time
 
-# df = pd.DataFrame(columns=['features', 'label'])
 features = []
 y = []
 def add_data(path: str, label: int):
@@ -15,28 +14,15 @@ def add_data(path: str, label: int):
   for file in os.listdir(path):
     image = cv2.imread(f'{path}/{file}')
     features.append(np.array(image).reshape(-1) / 255)
-    # new_row = pd.DataFrame({'features': [features], 'label': [label]})
-    # df = pd.concat([df, new_row], ignore_index=True)
     y.append(label)
     
 add_data('Q2/resized_train_3', -1)
 add_data('Q2/resized_train_4', 1)
 
 # m = df.shape[0]
+# Reference: https://xavierbourretsicotte.github.io/SVM_implementation.html
 features = np.array(features)
 m = len(features)
-start = time.time()
-# P = np.zeros((m, m))
-# for i in range(m):
-#   for j in range(m):
-#     P[i][j] = np.dot(features[i], features[j]) * y[i] * y[j]
-    
-# q = matrix(-np.ones(m))
-# G = matrix(np.vstack((-np.eye(m), np.eye(m))))
-# h = matrix(np.hstack((np.zeros(m), np.ones(m))))
-# A = matrix(y, (1, m), 'd')
-# b = matrix(0.0)
-
 P = matrix(np.outer(y, y) * np.dot(features, features.T))
 q = matrix(-np.ones(m))
 G = matrix(np.vstack((-np.eye(m), np.eye(m))))
@@ -44,34 +30,40 @@ h = matrix(np.hstack((np.zeros(m), np.ones(m))))
 A = matrix(y, (1, m), 'd')
 b = matrix(0.0)
 
-# Solve the quadratic programming problem
 solvers.options['show_progress'] = False
 solution = solvers.qp(P, q, G, h, A, b)
-
-# print("Time taken: ", time.time() - start)
-# sol = solvers.qp(P, q, G, h, A, b)
-# alphas = np.array(sol['x'])
-# print(alphas)
-
 alphas = np.ravel(solution['x'])
 
 # Find support vectors (non-zero alphas)
 support_vector_indices = np.where(alphas > 1e-4)[0]
 
-print(f'Number of support Vectors are {len(support_vector_indices)}')
-print(f'percentage of training samples that are support Vectors are {len(support_vector_indices)*100/m}')
-# support_vectors = data[support_vector_indices]
-# support_vector_labels = labels[support_vector_indices]
+print(f'Count of support vectors = ', len(support_vector_indices))
+print(f'Support Vector % = ', (len(support_vector_indices) / m)  * 100 )
 
-# Calculate the weight vector w
-w = np.sum((alphas[i] * y[i] * features[i]) for i in support_vector_indices)
+w, b = 0, 0
+for index in support_vector_indices:
+  w += alphas[index] * y[index] * features[index]
 
-# Calculate the intercept term b
-b = 0
-for i in support_vector_indices:
-    b += y[i]
-    b -= np.dot(w, features[i])
+for index in support_vector_indices:
+    b += y[index] - np.dot(w, features[index])
 b /= len(support_vector_indices)
 
-print(w)
-print(b)
+# print(w)
+# print(b)
+
+index, cnt = 0, 0
+def test(path: str, label: int):
+  global cnt
+  global index
+  for file in os.listdir(path):
+    image = cv2.imread(f'{path}/{file}')
+    # features.append()
+    cnt += 1 if (np.sign(np.dot(np.array(image).reshape(-1) / 255, w) + b) == label) else 0
+    index += 1
+    # print(np.sign(np.dot(np.array(image).reshape(-1) / 255, w) + b), np.dot(np.array(image).reshape(-1) / 255, w) + b)
+  
+test("Q2/resized_test_3", -1)
+test("Q2/resized_test_4", 1)
+# print(index, m)
+print("Accuracy: ", (cnt / index) * 100)
+# print(cnt, index)
