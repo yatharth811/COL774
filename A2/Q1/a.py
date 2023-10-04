@@ -4,6 +4,7 @@ import numpy as np
 from collections import defaultdict
 import regex as re
 from utils import read_data, lower
+from sklearn.metrics import confusion_matrix
 
 NEUTRAL = 'Neutral'
 POSITIVE = 'Positive'
@@ -19,9 +20,9 @@ class NaiveBayes():
     
     def preprocess(self, text):
         # This leads to 71% accuracy.
-        return [x.strip(r'[. "\'#?&,;]') for x in (re.split(r'[\s\n,.]+', text.lower()))]
+        # return [x.strip(r'[. "\'#?&,;]') for x in (re.split(r'[\s\n,.]+', text.lower()))]
         # return re.split(r'[\s\n,.]+', text)
-        # return text.strip().split()
+        return text.strip().split()
     
     def train(self, training_data):
         word_counts = defaultdict(lambda: {NEUTRAL: 0, POSITIVE: 0, NEGATIVE: 0})
@@ -52,7 +53,7 @@ class NaiveBayes():
             for sentiment in [NEUTRAL, POSITIVE, NEGATIVE]:
                 # Laplace smoothing (add-one smoothing)
                 count = word_counts[word][sentiment] + 1
-                total_words_in_class = 2 * class_counts[sentiment] + len(self.vocabulary)
+                total_words_in_class = class_counts[sentiment] + len(self.vocabulary)
                 conditionals[word][sentiment] = np.log(count / total_words_in_class)
 
         self.priors, self.conditionals = priors, conditionals
@@ -75,9 +76,15 @@ class NaiveBayes():
             cnt += 1 if model.classify(test_data.CoronaTweet[i]) == test_data.Sentiment[i] else 0
         return cnt / test_data.shape[0]
 
+    def get_predictions(self, test_data):
+        predictions = []
+        for i in range(test_data.shape[0]):
+            predictions.append(model.classify(test_data.CoronaTweet[i]) )
+        return predictions
 
 model = NaiveBayes()
 model.train(pd.read_csv('Q1/Corona_train.csv'))
 test_data = read_data('Q1/Corona_validation.csv')
-lower(test_data)
+# lower(test_data)
 print("Accuracy: ", model.test(test_data))
+print("Confusion Matrix:\n", confusion_matrix(np.array(test_data['Sentiment']), model.get_predictions(test_data)))

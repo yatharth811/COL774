@@ -42,8 +42,9 @@ class NaiveBayes():
             for word in self.preprocess(text):
                 # if (bool(re.search(r'http.', word, flags=re.IGNORECASE))):
                 #     continue
-                # if word in stopwords:
-                #   continue
+                if word in stopwords:
+                  continue
+              
                 word_counts[word][sentiment] += 1
                 class_counts[sentiment] += 1
                 self.vocabulary.add(word)
