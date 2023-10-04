@@ -7,6 +7,8 @@ from utils import read_data, lower
 import nltk
 from nltk.corpus import stopwords
 from nltk.stem import PorterStemmer
+from wordcloud import WordCloud
+import matplotlib.pyplot as plt
 
 NEUTRAL = 'Neutral'
 POSITIVE = 'Positive'
@@ -21,6 +23,7 @@ class NaiveBayes():
         self.vocabulary = set()
         self.priors = {}
         self.conditionals = {}
+        self.wordcloud = {}
         pass
     
     def preprocess(self, text):
@@ -35,6 +38,7 @@ class NaiveBayes():
         word_counts = defaultdict(lambda: {NEUTRAL: 0, POSITIVE: 0, NEGATIVE: 0})
         class_counts = {NEUTRAL: 0, POSITIVE: 0, NEGATIVE: 0}
         prior_counts = {NEUTRAL: 0, POSITIVE: 0, NEGATIVE: 0}
+        cloud_counts = defaultdict(lambda: defaultdict(int))
         total_text = training_data.shape[0]
         
         for i in range(total_text):
@@ -46,6 +50,7 @@ class NaiveBayes():
                   continue
               
                 word_counts[word][sentiment] += 1
+                cloud_counts[sentiment][word] += 1
                 class_counts[sentiment] += 1
                 self.vocabulary.add(word)
             prior_counts[sentiment] += 1
@@ -66,7 +71,7 @@ class NaiveBayes():
                 total_words_in_class = class_counts[sentiment] + len(self.vocabulary)
                 conditionals[word][sentiment] = np.log(count / total_words_in_class)
 
-        self.priors, self.conditionals = priors, conditionals
+        self.priors, self.conditionals, self.wordcloud = priors, conditionals, cloud_counts
     
     def classify(self, text):
         scores = {NEUTRAL: 0, POSITIVE: 0, NEGATIVE: 0}
@@ -85,7 +90,16 @@ class NaiveBayes():
         for i in range(test_data.shape[0]):
             cnt += 1 if model.classify(test_data.CoronaTweet[i]) == test_data.Sentiment[i] else 0
         return cnt / test_data.shape[0]
-        
+    
+    def get_word_cloud(self):
+        for sentiment in [NEUTRAL, POSITIVE, NEGATIVE]:
+            wordcloud = WordCloud(width=800, height=400, background_color='white').generate_from_frequencies(self.wordcloud[sentiment])
+            # Display the word cloud using Matplotlib
+            plt.figure(figsize=(10, 5))
+            plt.imshow(wordcloud, interpolation='bilinear')
+            plt.axis("off")
+            plt.show()
+            
 
 model = NaiveBayes()
 model.train(pd.read_csv('Q1/Corona_train.csv'))
