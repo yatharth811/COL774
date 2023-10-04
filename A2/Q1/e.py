@@ -12,24 +12,47 @@ NEUTRAL = 'Neutral'
 POSITIVE = 'Positive'
 NEGATIVE = 'Negative'
 stopwords = set(stopwords.words('english'))
-print(stopwords)
 ps = PorterStemmer()
-# print(stopwords)
 
 class NaiveBayes():
     def __init__(self):
         self.vocabulary = set()
         self.priors = {}
         self.conditionals = {}
+        self.doc_lengths = {NEUTRAL: 0, POSITIVE: 0, NEGATIVE: 0}  # To store document lengths
+        self.doc_term_counts = defaultdict(lambda: defaultdict(int))  # To store term frequencies
         pass
     
     def preprocess(self, text):
         # This leads to 71% accuracy.
-        # return [x.strip(r'[. "\'#?&,;]') for x in re.split(r'[\s\n,.]+', text.lower())]
-        # return [ps.stem(x) for x in text.strip().lower().split()]
+        return [ps.stem(x.strip(r'[. "\'#?&,;]')) for x in re.split(r'[\s\n,.]+', text.lower()) if x not in stopwords]
+        # return [ps.stem(x) for x in text.strip().lower().split() if x not in stopwords]
         # return [ps.stem(x) for x in text.lower().strip().split()]
-        return set([ps.stem(word) for word in text.strip().split()])
+        # return ([ps.stem(word) for word in text.strip().split()])
         # return [ps.stem(x.strip(r'[. "\'#?&,;]')) for x in set(re.split(r'[\s\n,.]+', text.lower()))]
+        
+    def construct_bigrams(self, preprocessed_text):
+      size = len(preprocessed_text)
+      # preprocessed_text = list(preprocessed_text)
+      # bigrams = set()
+      bigrams = []
+      
+      for i in range(0, size - 1):
+        bigrams.append(preprocessed_text[i] + preprocessed_text[i + 1])
+      bigrams = preprocessed_text + bigrams
+      return bigrams
+    
+    def calculate_tfidf(self, word, sentiment):
+        # Calculate Term Frequency (TF)
+        tf = self.doc_term_counts[sentiment][word] / self.doc_lengths[sentiment]
+        
+        # Calculate Inverse Document Frequency (IDF)
+        doc_count_with_term = sum(1 for s in [NEUTRAL, POSITIVE, NEGATIVE] if word in self.doc_term_counts[s])
+        idf = np.log((3 + 1) / (doc_count_with_term + 1)) + 1  # Laplace smoothed IDF
+        
+        # Calculate TF-IDF
+        tfidf = tf * idf
+        return tfidf
     
     def train(self, training_data):
         word_counts = defaultdict(lambda: {NEUTRAL: 0, POSITIVE: 0, NEGATIVE: 0})
@@ -39,15 +62,18 @@ class NaiveBayes():
         
         for i in range(total_text):
             sentiment, text = training_data.Sentiment[i], training_data.CoronaTweet[i]
-            for word in self.preprocess(text):
+            words = self.preprocess(text)
+            bigrams = self.construct_bigrams(words)
+            self.doc_lengths[sentiment] += len(bigrams)
+            for word in bigrams:
                 # if (bool(re.search(r'http.', word, flags=re.IGNORECASE))):
                 #     continue
-                if word in stopwords:
-                  continue
-              
+                # if word in stopwords:
+                #   continue  
                 word_counts[word][sentiment] += 1
                 class_counts[sentiment] += 1
                 self.vocabulary.add(word)
+                self.doc_term_counts[sentiment][word] += 1
             prior_counts[sentiment] += 1
                 
         # Prior Class Probability
@@ -63,7 +89,7 @@ class NaiveBayes():
             for sentiment in [NEUTRAL, POSITIVE, NEGATIVE]:
                 # Laplace smoothing (add-one smoothing)
                 count = word_counts[word][sentiment] + 1
-                total_words_in_class = class_counts[sentiment] + len(self.vocabulary)
+                total_words_in_class = 2 * class_counts[sentiment] + len(self.vocabulary)
                 conditionals[word][sentiment] = np.log(count / total_words_in_class)
 
         self.priors, self.conditionals = priors, conditionals
@@ -71,12 +97,14 @@ class NaiveBayes():
     def classify(self, text):
         scores = {NEUTRAL: 0, POSITIVE: 0, NEGATIVE: 0}
         words = self.preprocess(text)
+        bigrams = self.construct_bigrams(words)
         
         for sentiment in [NEUTRAL, POSITIVE, NEGATIVE]:
             scores[sentiment] = self.priors[sentiment]
-            for word in words:
-                if word in self.vocabulary:
-                    scores[sentiment] += self.conditionals[word][sentiment]
+            for word in bigrams:
+              if word in self.vocabulary:
+                # print(self.calculate_tfidf(word, sentiment))
+                scores[sentiment] += self.conditionals[word][sentiment] + 200 * self.calculate_tfidf(word, sentiment)
         
         return max(scores, key=scores.get)
     
@@ -89,7 +117,7 @@ class NaiveBayes():
 
 model = NaiveBayes()
 model.train(pd.read_csv('Q1/Corona_train.csv'))
+test_data = read_data('Q1/Corona_train.csv')
+print("Accuracy on training data: ", model.test(test_data) * 100)
 test_data = read_data('Q1/Corona_validation.csv')
-# test_data = lower(test_data)
-# test_data['CoronaTweet'] = test_data['CoronaTweet'].str.lower()
-print("Accuracy: ", model.test(test_data))
+print("Accuracy on validation data: ", model.test(test_data) * 100)
