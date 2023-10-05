@@ -4,7 +4,7 @@ import cv2
 import pandas as pd
 import numpy as np
 import time
-from scipy import spatial
+import matplotlib.pyplot as plt
 
 features = []
 y = []
@@ -74,3 +74,18 @@ def test(path: str, label: int):
 test("Q2/resized_test_3", -1)
 test("Q2/resized_test_4", 1)
 print("Accuracy: ", (cnt / index) * 100)
+
+
+# Top 6
+nalphas = sorted(alphas, reverse=True)
+alps = [nalphas[i] for i in range(6)]
+image_data = [np.reshape(features[i], (16, 16, 3)) for i in range(6)]
+
+fig, axes = plt.subplots(2, 3)
+for i, ax in enumerate(axes.ravel()):
+  ax.imshow(image_data[i])
+  ax.set_title(f"Alpha: {alps[i]:.2f}")
+
+plt.tight_layout()
+plt.savefig('top6_b.png')
+plt.show()
