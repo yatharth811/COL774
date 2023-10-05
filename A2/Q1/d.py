@@ -31,7 +31,7 @@ class NaiveBayes():
         # return [x.strip(r'[. "\'#?&,;]') for x in re.split(r'[\s\n,.]+', text.lower())]
         # return [ps.stem(x) for x in text.strip().lower().split()]
         # return [ps.stem(x) for x in text.lower().strip().split()]
-        return set([ps.stem(word) for word in text.strip().split()])
+        return [ps.stem(word) for word in text.strip().split()]
         # return [ps.stem(x.strip(r'[. "\'#?&,;]')) for x in set(re.split(r'[\s\n,.]+', text.lower()))]
     
     def train(self, training_data):
