@@ -113,7 +113,7 @@ for path in dirs:
   test_data = test_data.rename(columns={'Tweet': 'CoronaTweet'})
   # test_data = lower(test_data)
   # test_data['CoronaTweet'] = test_data['CoronaTweet'].str.lower()
-  print(f"Accuracy with corona and {path}% twitter training data: ", model.test(test_data))
+  print(f"Accuracy with corona and {path}% twitter training data: ", model.test(test_data) * 100)
   # model.get_word_cloud()
   
 
@@ -126,5 +126,5 @@ for path in dirs:
   test_data = test_data.rename(columns={'Tweet': 'CoronaTweet'})
   # test_data = lower(test_data)
   # test_data['CoronaTweet'] = test_data['CoronaTweet'].str.lower()
-  print(f"Accuracy with only {path}% twitter training data: ", model.test(test_data))
+  print(f"Accuracy with only {path}% twitter training data: ", model.test(test_data) * 100)
   # model.get_word_cloud()
