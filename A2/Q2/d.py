@@ -51,12 +51,12 @@ C = [1e-5, 1e-3, 1, 5, 10]
 for c in C:
   svc = SVC(C=c, kernel='rbf', gamma=0.001)
   score = np.mean(cross_val_score(svc, x_train, y_train, cv=5))
-  cross_validation_accuracies.append(score)
+  cross_validation_accuracies.append(score * 100)
   print(f'C = {c}')
   print(f'5-Fold Cross Validation Accuracy: {score * 100}%')
   svc.fit(x_train, y_train)
   score = svc.score(x_test, y_test)
-  validation_accuracies.append(score)
+  validation_accuracies.append(score * 100)
   print(f'Validation Accuracy: {score * 100}%')
   
   
