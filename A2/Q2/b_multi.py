@@ -68,8 +68,9 @@ for i, y in enumerate(y_pred):
   
 for i in range(12):
   index, label = mislabeled[i]
-  upscaled_image = cv2.resize(np.reshape(x_test[index], (16, 16, 3)), (150, 150), interpolation=cv2.INTER_LINEAR)
-  plt.imshow(upscaled_image)
+  contents = os.listdir(f'Q2/val/{y_test[index]}')
+  image = cv2.imread(f'Q2/val/{y_test[index]}/{contents[index % len(contents)]}')
+  plt.imshow(image)
   plt.title(f'Predicted Label: {label}, Correct Label: {y_test[index]}')
   plt.savefig(f'b_{i}.png')
   plt.show()
