@@ -4,6 +4,7 @@ from sklearn.svm import SVC
 from sklearn.metrics import confusion_matrix, accuracy_score, classification_report
 import cv2
 import os
+import matplotlib.pyplot as plt
 
 x_train = []
 y_train = []
@@ -55,3 +56,19 @@ print(cmatrix)
 report = classification_report(y_test, y_pred)
 print("Report:")
 print(report)
+
+mislabeled = []
+for i, y in enumerate(y_pred):
+  if (y != y_test[i]):
+    mislabeled.append((i, y))
+  
+  if (len(mislabeled) == 12):
+    break
+  
+  
+for i in range(12):
+  index, label = mislabeled[i]
+  plt.imshow(np.reshape(x_test[index], (16, 16, 3)))
+  plt.title(f'Predicted Label: {label}, Correct Label: {y_test[index]}')
+  plt.savefig(f'b_{i}.png')
+  plt.show()
