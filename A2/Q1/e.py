@@ -89,7 +89,7 @@ class NaiveBayes():
             for sentiment in [NEUTRAL, POSITIVE, NEGATIVE]:
                 # Laplace smoothing (add-one smoothing)
                 count = word_counts[word][sentiment] + 1
-                total_words_in_class = class_counts[sentiment] + len(self.vocabulary)
+                total_words_in_class = 2 * class_counts[sentiment] + len(self.vocabulary)
                 conditionals[word][sentiment] = np.log(count / total_words_in_class)
 
         self.priors, self.conditionals = priors, conditionals
@@ -104,8 +104,8 @@ class NaiveBayes():
             for word in bigrams:
               if word in self.vocabulary:
                 # print(self.calculate_tfidf(word, sentiment))
-                # scores[sentiment] += self.conditionals[word][sentiment] + 200 * self.calculate_tfidf(word, sentiment)
-                scores[sentiment] += self.conditionals[word][sentiment]
+                scores[sentiment] += self.conditionals[word][sentiment] + 200 * self.calculate_tfidf(word, sentiment)
+                # scores[sentiment] += self.conditionals[word][sentiment]
         return max(scores, key=scores.get)
     
     def test(self, test_data):
