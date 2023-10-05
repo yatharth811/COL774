@@ -68,6 +68,7 @@ plt.ylabel('Accuracy')
 plt.title('5-Fold Cross-Validation and Validation Set Accuracy vs. C')
 plt.legend()
 plt.grid(True)
+plt.savefig('d.png')
 plt.show()
 
 print(cross_validation_accuracies, validation_accuracies)

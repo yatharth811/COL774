@@ -4,6 +4,7 @@ import cv2
 import pandas as pd
 import numpy as np
 import time
+import matplotlib.pyplot as plt
 
 features = []
 y = []
@@ -67,3 +68,22 @@ test("Q2/resized_test_4", 1)
 # print(index, m)
 print("Accuracy: ", (cnt / index) * 100)
 # print(cnt, index)
+
+
+# plot top 6 coefficients and weight vector 
+nalphas = sorted(alphas, reverse=True)
+alps = [nalphas[i] for i in range(6)]
+image_data = [np.reshape(features[i], (16, 16, 3)) for i in range(6)]
+image_data.append(np.reshape(w, (16, 16, 3)))
+
+fig, axes = plt.subplots(2, 4)
+for i, ax in enumerate(axes.ravel()):
+    if i < 7:
+        ax.imshow(image_data[i])
+        ax.set_title(f"Alpha: {alps[i]:.2f}") if i < 6 else ax.set_title(f"Weight, w")
+    else:
+        ax.axis("off")
+
+plt.tight_layout()
+plt.savefig('top6_a.png')
+plt.show()
