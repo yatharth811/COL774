@@ -101,6 +101,8 @@ class NaiveBayes():
 
 
 dirs = [1, 2, 5, 10, 25, 50, 100]
+y1 = []
+y2 = []
 
 for path in dirs:
   model = NaiveBayes()
@@ -113,7 +115,9 @@ for path in dirs:
   test_data = test_data.rename(columns={'Tweet': 'CoronaTweet'})
   # test_data = lower(test_data)
   # test_data['CoronaTweet'] = test_data['CoronaTweet'].str.lower()
-  print(f"Accuracy with corona and {path}% twitter training data: ", model.test(test_data) * 100)
+  accuracy = model.test(test_data) * 100
+  print(f"Accuracy with corona and {path}% twitter training data: ", accuracy)
+  y1.append(accuracy)
   # model.get_word_cloud()
   
 
@@ -126,5 +130,19 @@ for path in dirs:
   test_data = test_data.rename(columns={'Tweet': 'CoronaTweet'})
   # test_data = lower(test_data)
   # test_data['CoronaTweet'] = test_data['CoronaTweet'].str.lower()
+  accuracy = model.test(test_data) * 100
   print(f"Accuracy with only {path}% twitter training data: ", model.test(test_data) * 100)
+  y2.append(accuracy)
   # model.get_word_cloud()
+  
+# print(y1, y2)
+
+plt.plot(dirs, y1, label='Accuracy with source domain')
+plt.plot(dirs, y2, label='Accuracy without source domain')
+
+plt.xlabel("Twitter training data (in %)")
+plt.ylabel("Accuracy (in %)")
+plt.title('Domain Adaptation')
+plt.legend()
+plt.show()
+
