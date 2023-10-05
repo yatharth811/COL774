@@ -13,10 +13,8 @@ import matplotlib.pyplot as plt
 NEUTRAL = 'Neutral'
 POSITIVE = 'Positive'
 NEGATIVE = 'Negative'
-# stopwords = set(stopwords.words('english'))
-# print(stopwords)
+stopwords = set(stopwords.words('english'))
 ps = PorterStemmer()
-# print(stopwords)
 
 class NaiveBayes():
     def __init__(self):
