@@ -13,8 +13,8 @@ import matplotlib.pyplot as plt
 NEUTRAL = 'Neutral'
 POSITIVE = 'Positive'
 NEGATIVE = 'Negative'
-stopwords = set(stopwords.words('english'))
-print(stopwords)
+# stopwords = set(stopwords.words('english'))
+# print(stopwords)
 ps = PorterStemmer()
 # print(stopwords)
 
@@ -31,7 +31,7 @@ class NaiveBayes():
         # return [x.strip(r'[. "\'#?&,;]') for x in re.split(r'[\s\n,.]+', text.lower())]
         # return [ps.stem(x) for x in text.strip().lower().split()]
         # return [ps.stem(x) for x in text.lower().strip().split()]
-        return set([ps.stem(word) for word in text.strip().split()])
+        return [ps.stem(word) for word in text.strip().split()]
         # return [ps.stem(x.strip(r'[. "\'#?&,;]')) for x in set(re.split(r'[\s\n,.]+', text.lower()))]
     
     def train(self, training_data):
@@ -46,8 +46,8 @@ class NaiveBayes():
             for word in self.preprocess(text):
                 # if (bool(re.search(r'http.', word, flags=re.IGNORECASE))):
                 #     continue
-                if word in stopwords:
-                  continue
+                # if word in stopwords:
+                #   continue
               
                 word_counts[word][sentiment] += 1
                 cloud_counts[sentiment][word] += 1
@@ -101,10 +101,32 @@ class NaiveBayes():
             plt.show()
             
 
-model = NaiveBayes()
-model.train(pd.read_csv('Q1/Corona_train.csv'))
-test_data = read_data('Q1/Corona_validation.csv')
-# test_data = lower(test_data)
-# test_data['CoronaTweet'] = test_data['CoronaTweet'].str.lower()
-print("Accuracy: ", model.test(test_data))
-model.get_word_cloud()
+
+dirs = [1, 2, 5, 10, 25, 50, 100]
+
+for path in dirs:
+  model = NaiveBayes()
+  df1 = pd.read_csv('Q1/Corona_train.csv')
+  df2 = pd.read_csv(f'Q1/Domain_Adaptation/Twitter_train_{path}.csv')
+  df2 = df2.rename(columns={'Tweet': 'CoronaTweet'})
+  concatenated_df = pd.concat([df1, df2], ignore_index=True)
+  model.train(concatenated_df)
+  test_data = read_data('Q1/Domain_Adaptation/Twitter_validation.csv')
+  test_data = test_data.rename(columns={'Tweet': 'CoronaTweet'})
+  # test_data = lower(test_data)
+  # test_data['CoronaTweet'] = test_data['CoronaTweet'].str.lower()
+  print(f"Accuracy with corona and {path}% twitter training data: ", model.test(test_data))
+  # model.get_word_cloud()
+  
+
+for path in dirs:
+  model = NaiveBayes()
+  df2 = pd.read_csv(f'Q1/Domain_Adaptation/Twitter_train_{path}.csv')
+  df2 = df2.rename(columns={'Tweet': 'CoronaTweet'})
+  model.train(df2)
+  test_data = read_data('Q1/Domain_Adaptation/Twitter_validation.csv')
+  test_data = test_data.rename(columns={'Tweet': 'CoronaTweet'})
+  # test_data = lower(test_data)
+  # test_data['CoronaTweet'] = test_data['CoronaTweet'].str.lower()
+  print(f"Accuracy with only {path}% twitter training data: ", model.test(test_data))
+  # model.get_word_cloud()

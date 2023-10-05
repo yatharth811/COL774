@@ -1,152 +1,116 @@
-from PIL import Image
 import os
+from PIL import Image
 import numpy as np
-import cvxopt
-import cvxopt.solvers
+from cvxopt import matrix as cvxopt_matrix
+from cvxopt import solvers as cvxopt_solvers
+import json
 
-# Define the output size after resizing
-output_size = (16, 16)
+def gaussian_kernel(x, y, gamma):
+    distance = np.linalg.norm(x - y)
+    kernel_value = np.exp(-distance**2 * gamma)
+    return kernel_value
 
-# Create lists to store the resized and normalized image data and labels
-data = []
-labels = []
+def gaussian_kernel_matrix(data, labels, gamma):
+    num_samples = len(data)
+    kernel_matrix = np.zeros((num_samples, num_samples))
 
-# Directory containing the training data
-train_dir = os.path.join(os.getcwd(), 'svm', 'train')
+    for i in range(num_samples):
+        for j in range(num_samples):
+            kernel_matrix[i, j] = gaussian_kernel(data[i], data[j], gamma)*labels[i]*labels[j]
 
-print(train_dir)
+    return kernel_matrix
 
-# Iterate through the '0' and '1' subdirectories within the 'train' directory
-for class_name in ['0', '1']:
-    class_dir = os.path.join(train_dir, class_name)
+def cvxopt_svm(examples, labels):
+    C = 1.0
+    m,_ = examples.shape
+    X_dash = examples * labels[:, np.newaxis]
+    H = gaussian_kernel_matrix(examples, labels, 0.001)
+    P = cvxopt_matrix(H)
+    q = cvxopt_matrix(-np.ones((m, 1)))
+    G = cvxopt_matrix(np.vstack((np.eye(m)*-1,np.eye(m))))
+    h = cvxopt_matrix(np.hstack((np.zeros(m), np.ones(m) * C)))
+    A = cvxopt_matrix(labels.reshape(1,-1))
+    b = cvxopt_matrix(np.zeros(1))
 
-    # Check if the directory exists
-    if not os.path.exists(class_dir):
-        print(f"Directory '{class_name}' does not exist.")
-        continue
-
-    # Iterate through image files in the directory
-    for filename in os.listdir(class_dir):
-        if filename.endswith(".jpg"):
-            image_path = os.path.join(class_dir, filename)
-
-            # Open and resize the image
-            image = Image.open(image_path)
-            image = image.resize(output_size)
-
-            # Normalize the image data by dividing by 255
-            image_data = np.array(image).flatten() / 255.0
-
-            # Append the image data to the list
-            data.append(image_data)
-
-            # Assign the label based on the directory name ('0' or '1')
-            label = int(class_name)
-            if(label==0):
-                label=-1
-            labels.append(label)
-
-# Convert the data and labels lists to NumPy arrays
-data = np.array(data)
-labels = np.array(labels)
-
-# # Verify the shapes of the data and labels arrays
-# print("Data shape:", data.shape)
-# print("Labels shape:", labels.shape)
-
-# Define the SVM training function
+    cvxopt_solvers.options['show_progress'] = False
+    return cvxopt_solvers.qp(P, q, G, h, A, b)
 
 
-def train_svm(data, labels, C=1.0):
-    m, n = data.shape
+if __name__ == '_main_':
 
-    # Create the necessary matrices for the quadratic programming problem
-    P = cvxopt.matrix(np.outer(labels, labels) * np.dot(data, data.T))
-    q = cvxopt.matrix(-np.ones(m))
-    G = cvxopt.matrix(np.vstack((-np.eye(m), np.eye(m))))
-    h = cvxopt.matrix(np.hstack((np.zeros(m), np.ones(m) * C)))
-    A = cvxopt.matrix(labels, (1, m), 'd')
-    b = cvxopt.matrix(0.0)
+    train_folders = [('train/3',-1),('train/4',1)]
+    test_folders = [('val/3',-1),('val/4',1)]
 
-    # Solve the quadratic programming problem
-    cvxopt.solvers.options['show_progress'] = False
-    solution = cvxopt.solvers.qp(P, q, G, h, A, b)
+    target_size = (16, 16)
+    examples = np.empty((0, 768))
+    test_set = np.empty((0, 768))
+    labels_examples = np.empty((0,))
+    labels_test = np.empty((0,))
 
-    # Extract Lagrange multipliers (alphas)
-    alphas = np.ravel(solution['x'])
 
-    # Find support vectors (non-zero alphas)
-    support_vector_indices = np.where(alphas > 1e-4)[0]
+    for folder in train_folders:
+        input_folder, label = folder
+        for filename in os.listdir(input_folder):
+            with Image.open(os.path.join(input_folder, filename)) as img:
+                img = img.resize(target_size)  
+                img_arr = np.array(img)
+                flattened_vector = img_arr.reshape(768)
+                examples = np.vstack((examples,flattened_vector))
+                labels_examples = np.append(labels_examples,label)
+    
+    for folder in test_folders:
+        input_folder, label = folder
+        for filename in os.listdir(input_folder):
+            with Image.open(os.path.join(input_folder, filename)) as img:
+                img = img.resize(target_size)  
+                img_arr = np.array(img)
+                flattened_vector = img_arr.reshape(768)
+                test_set = np.vstack((test_set,flattened_vector))
+                labels_test = np.append(labels_test,label)
 
-    print(f'Number of support Vectors are {len(support_vector_indices)}')
-    print(f'percentage of training samples that are support Vectors are {len(support_vector_indices)*100/m}')
-    # support_vectors = data[support_vector_indices]
-    # support_vector_labels = labels[support_vector_indices]
+    data = {
+        'examples': examples.tolist(),
+        'labels_example': labels_examples.tolist(),
+        'test_set': test_set.tolist(),
+        'labels_test': labels_test.tolist()
+    }
 
-    # Calculate the weight vector w
-    w = np.sum((alphas[i] * labels[i] * data[i]) for i in support_vector_indices)
+    data = {}
 
-    # Calculate the intercept term b
+    with open('persistent_variables.json', 'r') as file:
+        data = json.load(file)
+
+    examples = np.array(data['examples'])
+    test_set = np.array(data['test_set'])
+    labels_examples = np.array(data['labels_example'])
+    labels_test = np.array(data['labels_test'])
+
+    examples /= 255
+    test_set /= 255
+
+    sol = cvxopt_svm(examples,labels_examples)
+    alphas = np.array(sol['x'])
+    indices = np.where(alphas>1e-5)[0]
+    print('Number of support vectors', len(indices))
+    print('Percentage of support vectors', (len(indices)/len(examples))*100)
+
+    kernel_matix = gaussian_kernel_matrix(examples, labels_examples, 0.001)
+
     b = 0
-    for i in support_vector_indices:
-        b += labels[i]
-        b -= np.dot(w, data[i])
-    b /= len(support_vector_indices)
+    for i in indices:
+        b += labels_examples[i]
+        for j in indices:
+            b -= alphas[j]*labels_examples[j]*kernel_matix[i,j]
+    b /= len(indices)
+    print('b = ', b)
 
-    return w, b
+    cnt = 0
+    for i in range(len(test_set)):
+        y = b
+        for j in indices:
+            y += alphas[j]*labels_examples[j]*gaussian_kernel(examples[j], test_set[i], 0.001)
+        if np.sign(y)==labels_test[i]:
+            cnt+=1
 
-# Train the SVM
-w, b = train_svm(data, labels, C=1.0)
-# Now you have the weight vector w and intercept term b
-# print("Weight Vector (w):", w)
-# print("Intercept Term (b):", b)
-
-
-#Now we need to use this model on the validation data
-#These here are the validation data and validation labels
-data = []
-labels = []
-
-# Directory containing the training data
-train_dir = os.path.join(os.getcwd(), 'svm', 'val')
-
-print(train_dir)
-
-# Iterate through the '0' and '1' subdirectories within the 'train' directory
-for class_name in ['0', '1']:
-    class_dir = os.path.join(train_dir, class_name)
-
-    # Check if the directory exists
-    if not os.path.exists(class_dir):
-        print(f"Directory '{class_name}' does not exist.")
-        continue
-
-    # Iterate through image files in the directory
-    for filename in os.listdir(class_dir):
-        if filename.endswith(".jpg"):
-            image_path = os.path.join(class_dir, filename)
-
-            # Open and resize the image
-            image = Image.open(image_path)
-            image = image.resize(output_size)
-
-            # Normalize the image data by dividing by 255
-            image_data = np.array(image).flatten() / 255.0
-
-            # Append the image data to the list
-            data.append(image_data)
-
-            # Assign the label based on the directory name ('0' or '1')
-            label = int(class_name)
-            if(label==0):
-                label=-1
-            labels.append(label)
-
-correct=0
-
-for i in range(len(data)):
-    value = np.dot(w,data[i]) +b
-    if((value<0 and labels[i]==-1) or (value>=0 and labels[i]==1)):
-        correct+=1
-
-print(f'Precentage correct is {correct*100/len(data)}')
+    print("Accuracy", (cnt/len(test_set))*100)
+    
