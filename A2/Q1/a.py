@@ -98,8 +98,14 @@ class NaiveBayes():
 
 model = NaiveBayes()
 model.train(pd.read_csv('Q1/Corona_train.csv'))
+test_data = read_data('Q1/Corona_train.csv')
+# lower(test_data)
+print("Accuracy with training data: ", model.test(test_data))
+print("Confusion Matrix:\n", confusion_matrix(np.array(test_data['Sentiment']), model.get_predictions(test_data)))
+model.get_word_cloud()
+
 test_data = read_data('Q1/Corona_validation.csv')
 # lower(test_data)
-print("Accuracy: ", model.test(test_data))
+print("Accuracy with validation data: ", model.test(test_data))
 print("Confusion Matrix:\n", confusion_matrix(np.array(test_data['Sentiment']), model.get_predictions(test_data)))
 model.get_word_cloud()
