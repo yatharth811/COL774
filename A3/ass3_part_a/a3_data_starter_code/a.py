@@ -33,12 +33,12 @@ class DecisionTree:
   # Recursive code to fit the training examples
   def fit(self, X, y, types):
     if (self.max_depth == 0):
-      self.tree = int(np.round(np.mean(y)))
+      self.tree = int(np.argmax(np.bincount(y)))
     else:
       best_feature, best_value, is_continuous = self.find_best_split(X, y, types)
       
       if best_feature is None:
-        self.tree = int(np.round(np.mean(y)))
+        self.tree = int(np.argmax(np.bincount(y)))
       else:
         Xs, ys = self.split_data_cont(X, y, best_feature, best_value) if is_continuous else self.split_data_cat(X, y, best_feature, best_value)
         self.tree = {
@@ -48,7 +48,7 @@ class DecisionTree:
             "children": [
               DecisionTree(self.max_depth - 1) for _ in range(len(Xs))
             ],
-            "leaf_value": int(np.round(np.mean(y)))
+            "leaf_value": int(np.argmax(np.bincount(y)))
         }
         for i in range(len(Xs)):
           self.tree["children"][i].fit(Xs[i], ys[i], types)
@@ -89,16 +89,18 @@ class DecisionTree:
     lens = [len(y) for y in ys]
     denominator = np.sum(lens)
     lens /= denominator
-    C_S = 0
+    C_S = 0.0
     for i, y in enumerate(ys):
       C_S += (lens[i]) * self.entropy(y)
     return H_S - C_S
 
   def entropy(self, y):
-    p = np.mean(y)
-    if p == 0 or p == 1 or len(y) == 0:
+    if (len(y) == 0): 
       return 0
-    return -p * np.log2(p) - (1 - p) * np.log2(1 - p)
+    p = np.mean(y)
+    if p == 0 or p == 1:
+      return 0
+    return -p * np.log10(p) - (1.0 - p) * np.log10(1.0 - p)
   
   def split_data_cat(self, X, y, feature, categories):
     Xs, ys = [], []
@@ -132,7 +134,6 @@ class DecisionTree:
           return self.tree["children"][0].predict(X)
         else:
           return self.tree["children"][1].predict(X)
-        
       else:
         if X[feature] in value:
           for i, v in enumerate(value):
@@ -158,8 +159,8 @@ if __name__ == '__main__':
   y_train = np.array([y[0] for y in y_train])
   X_test, y_test = get_np_array("test.csv")
   y_test = np.array([y[0] for y in y_test])
-  types = ['cat','cat','cat',"cat","cat","cont","cat","cat","cat","cont","cont","cont"]
-  max_depth = 10
+  types = ["cat","cat","cat","cat","cat","cont","cat","cat","cat","cont","cont","cont"]
+  max_depth = 12
   tree = DecisionTree(max_depth = max_depth)
   tree.fit(X_train,y_train,types)
   train_correct = 0;

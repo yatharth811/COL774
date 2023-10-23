@@ -149,34 +149,56 @@ class DecisionTree:
               return self.tree["children"][i].predict(X) 
         else:
           return self.tree["leaf_value"]
-  
-  def visualize_tree(self):
-    # Visualize the decision tree structure (e.g., using graphviz or other tools)
-    # Implement logic to generate a visual representation of the tree
-    pass
       
-  def prune_tree(self):
-    # Prune the decision tree to reduce overfitting (optional)
-    # Implement logic to remove nodes that do not add significant value
-    pass
+  def prune_tree(self, X_val, y_val):
+    if (isinstance(self.tree, int)):
+      return 
+    
+    for cnode in self.tree["children"]:
+      cnode.prune_tree(X_val, y_val)
+    
+    store = self.tree
+    previous_accuracy = self.test(X_val, y_val)
+    self.tree = self.tree["leaf_value"]
+    new_accuracy = self.test(X_val, y_val)
+    
+    if (new_accuracy < previous_accuracy):
+      self.tree = store
+
+  
+  def test(self, X_test, y_test):
+    test_correct = 0;
+    for i in range(X_test.shape[0]):
+      test_correct += (self.predict(X_test[i]) == y_test[i])
+    # print(f"Test Accuracy: {test_correct / X_test.shape[0] * 100}%")
+    return test_correct / X_test.shape[0] * 100
+
       
 
 
 if __name__ == '__main__':
   X_train,y_train = get_np_array('train.csv')
   y_train = np.array([y[0] for y in y_train])
+  
   X_test, y_test = get_np_array("test.csv")
   y_test = np.array([y[0] for y in y_test])
-  types = ["cat" for i in range(X_test.shape[1] - 7)] + ["cont","cat","cat","cat" ,"cont","cont" ,"cont" ]
-  max_depth = 35
+  
+  X_val, y_val = get_np_array("val.csv")
+  y_val = np.array([y[0] for y in y_val])
+   
+  types = ["cat" for _ in range(X_test.shape[1] - 7)] + ["cont","cat","cat","cat" ,"cont","cont" ,"cont" ]
+  max_depth = 45
   tree = DecisionTree(max_depth = max_depth)
   tree.fit(X_train,y_train,types)
-  train_correct = 0;
-  for i in range(X_train.shape[0]):
-    train_correct += (tree.predict(X_train[i]) == y_train[i])
-  print(f"Train Accuracy: {train_correct / X_train.shape[0] * 100}%")
+  # train_correct = 0;
+  # for i in range(X_train.shape[0]):
+  #   train_correct += (tree.predict(X_train[i]) == y_train[i])
+  # print(f"Train Accuracy: {train_correct / X_train.shape[0] * 100}%")
   
-  test_correct = 0;
-  for i in range(X_test.shape[0]):
-    test_correct += (tree.predict(X_test[i]) == y_test[i])
-  print(f"Test Accuracy: {test_correct / X_test.shape[0] * 100}%")
+  # test_correct = 0;
+  # for i in range(X_test.shape[0]):
+  #   test_correct += (tree.predict(X_test[i]) == y_test[i])
+  # print(f"Test Accuracy: {test_correct / X_test.shape[0] * 100}%")
+  print("Before Pruning: ", tree.test(X_test, y_test))
+  tree.prune_tree(X_val, y_val)
+  print("Post Pruning: ", tree.test(X_test, y_test))
