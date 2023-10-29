@@ -150,17 +150,17 @@ class DecisionTree:
         else:
           return self.tree["leaf_value"]
       
-  def prune_tree(self, X_val, y_val):
+  def prune_tree(self, X_val, y_val, root):
     if (isinstance(self.tree, int)):
       return 
     
     for cnode in self.tree["children"]:
-      cnode.prune_tree(X_val, y_val)
+      cnode.prune_tree(X_val, y_val, root)
     
     store = self.tree
-    previous_accuracy = self.test(X_val, y_val)
+    previous_accuracy = root.test(X_val, y_val)
     self.tree = self.tree["leaf_value"]
-    new_accuracy = self.test(X_val, y_val)
+    new_accuracy = root.test(X_val, y_val)
     
     if (new_accuracy < previous_accuracy):
       self.tree = store
@@ -200,5 +200,5 @@ if __name__ == '__main__':
   #   test_correct += (tree.predict(X_test[i]) == y_test[i])
   # print(f"Test Accuracy: {test_correct / X_test.shape[0] * 100}%")
   print("Before Pruning: ", tree.test(X_test, y_test))
-  tree.prune_tree(X_val, y_val)
+  tree.prune_tree(X_val, y_val, tree)
   print("Post Pruning: ", tree.test(X_test, y_test))
