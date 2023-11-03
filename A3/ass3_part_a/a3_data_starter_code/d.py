@@ -69,6 +69,7 @@ def sub_part_a():
   # Create the legend
   plt.legend()
   plt.grid(True)
+  plt.savefig('d_1.png')
   plt.show()
   
   X_val, y_val = get_np_array("val.csv")
@@ -123,6 +124,7 @@ def sub_part_b():
   # Create the legend
   plt.legend()
   plt.grid(True)
+  plt.savefig('d_2.png')
   plt.show()
   
   X_val, y_val = get_np_array("val.csv")
@@ -134,6 +136,8 @@ def sub_part_b():
     model.fit(X_train, y_train)
     val_predictions = model.predict(X_val)
     val_accuracy = accuracy_score(y_val, val_predictions)
+    
+    print(f"Alpha: {alpha}, accuracy: {val_accuracy}")
     
     if (val_accuracy > best_accuracy):
       best_accuracy = val_accuracy

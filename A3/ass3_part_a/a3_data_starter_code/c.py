@@ -1,6 +1,7 @@
 from sklearn.preprocessing import OneHotEncoder
 from pandas import read_csv, DataFrame, concat
 import numpy as np
+import matplotlib.pyplot as plt
 one_hot_encoder = None
 
 def get_np_array(file_name):
@@ -36,6 +37,7 @@ class DecisionTree:
   def __init__(self, max_depth: int):
     self.max_depth = max_depth
     self.tree = None
+    self.plot_data = []
   
   # Recursive code to fit the training examples
   def fit(self, X, y, types):
@@ -150,12 +152,12 @@ class DecisionTree:
         else:
           return self.tree["leaf_value"]
       
-  def prune_tree(self, X_val, y_val, root):
+  def prune_tree(self, X_train, y_train, X_test, y_test, X_val, y_val, root):
     if (isinstance(self.tree, int)):
       return 
     
     for cnode in self.tree["children"]:
-      cnode.prune_tree(X_val, y_val, root)
+      cnode.prune_tree(X_train, y_train, X_test, y_test, X_val, y_val, root)
     
     store = self.tree
     previous_accuracy = root.test(X_val, y_val)
@@ -164,7 +166,12 @@ class DecisionTree:
     
     if (new_accuracy < previous_accuracy):
       self.tree = store
-
+    else:
+      # calculate node count and accuracy for plot :)
+      cnt = root.dfs()
+      train_accuracy = root.test(X_train, y_train)
+      test_accuracy = root.test(X_test, y_test)
+      root.plot_data.append((cnt, new_accuracy, test_accuracy, train_accuracy))
   
   def test(self, X_test, y_test):
     test_correct = 0;
@@ -172,9 +179,17 @@ class DecisionTree:
       test_correct += (self.predict(X_test[i]) == y_test[i])
     # print(f"Test Accuracy: {test_correct / X_test.shape[0] * 100}%")
     return test_correct / X_test.shape[0] * 100
-
+  
+  def dfs(self):
+    if (isinstance(self.tree, int)):
+      return 1
+    
+    ccnt = 1
+    for cnode in self.tree["children"]:
+      ccnt += cnode.dfs()
       
-
+    return ccnt
+  
 
 if __name__ == '__main__':
   X_train,y_train = get_np_array('train.csv')
@@ -187,18 +202,65 @@ if __name__ == '__main__':
   y_val = np.array([y[0] for y in y_val])
    
   types = ["cat" for _ in range(X_test.shape[1] - 7)] + ["cont","cat","cat","cat" ,"cont","cont" ,"cont" ]
-  max_depth = 45
-  tree = DecisionTree(max_depth = max_depth)
-  tree.fit(X_train,y_train,types)
-  # train_correct = 0;
-  # for i in range(X_train.shape[0]):
-  #   train_correct += (tree.predict(X_train[i]) == y_train[i])
-  # print(f"Train Accuracy: {train_correct / X_train.shape[0] * 100}%")
+  # max_depth = 15
+  # tree = DecisionTree(max_depth = max_depth)
+  # tree.fit(X_train,y_train,types)
+  # # train_correct = 0;
+  # # for i in range(X_train.shape[0]):
+  # #   train_correct += (tree.predict(X_train[i]) == y_train[i])
+  # # print(f"Train Accuracy: {train_correct / X_train.shape[0] * 100}%")
   
-  # test_correct = 0;
-  # for i in range(X_test.shape[0]):
-  #   test_correct += (tree.predict(X_test[i]) == y_test[i])
-  # print(f"Test Accuracy: {test_correct / X_test.shape[0] * 100}%")
-  print("Before Pruning: ", tree.test(X_test, y_test))
-  tree.prune_tree(X_val, y_val, tree)
-  print("Post Pruning: ", tree.test(X_test, y_test))
+  # # test_correct = 0;
+  # # for i in range(X_test.shape[0]):
+  # #   test_correct += (tree.predict(X_test[i]) == y_test[i])
+  # # print(f"Test Accuracy: {test_correct / X_test.shape[0] * 100}%")
+  # print("Before Pruning: ", tree.test(X_test, y_test))
+  # tree.prune_tree(X_train, y_train, X_test, y_test, X_val, y_val, tree)
+  # print("Post Pruning: ", tree.test(X_test, y_test))
+  
+  # xplot = [data[0] for data in tree.plot_data]
+  # validation_plot = [data[1] for data in tree.plot_data]
+  # test_plot = [data[2] for data in tree.plot_data]
+  # train_plot = [data[3] for data in tree.plot_data]
+  
+  # plt.plot(xplot, train_plot, label='Train Accuracy')
+  # plt.plot(xplot, test_plot, label='Test Accuracy')
+  # plt.plot(xplot, validation_plot, label='Validation Accuracy')
+  
+  # plt.xlabel("Count of Nodes in Tree")
+  # plt.ylabel("Accuracy (in %)")
+  # plt.title('Pruned Decision Trees')
+  # plt.legend()
+  # plt.savefig('c.png')
+  # plt.show()
+  
+  fig, axs = plt.subplots(2, 2, figsize=(10, 8))
+
+  for i, max_depth in enumerate([15, 25, 35, 45]):
+    row = i // 2
+    col = i % 2
+
+    tree = DecisionTree(max_depth=max_depth)
+    tree.fit(X_train, y_train, types)
+
+    print("Before Pruning for max_depth =", max_depth, ": ", tree.test(X_test, y_test))
+    tree.prune_tree(X_train, y_train, X_test, y_test, X_val, y_val, tree)
+    print("Post Pruning for max_depth =", max_depth, ": ", tree.test(X_test, y_test))
+
+    xplot = [data[0] for data in tree.plot_data]
+    validation_plot = [data[1] for data in tree.plot_data]
+    test_plot = [data[2] for data in tree.plot_data]
+    train_plot = [data[3] for data in tree.plot_data]
+
+    axs[row, col].plot(xplot, train_plot, label=f'Train Accuracy (depth {max_depth})')
+    axs[row, col].plot(xplot, test_plot, label=f'Test Accuracy (depth {max_depth})')
+    axs[row, col].plot(xplot, validation_plot, label=f'Validation Accuracy (depth {max_depth})')
+    axs[row, col].set_title(f'Max Depth = {max_depth}')
+    axs[row, col].set_xlabel("Count of Nodes in Tree")
+    axs[row, col].set_ylabel("Accuracy (in %)")
+    axs[row, col].legend()
+
+  plt.tight_layout()
+  plt.savefig('c.png')
+  plt.show()
+    

@@ -1,6 +1,7 @@
 from sklearn.preprocessing import OrdinalEncoder
 from pandas import read_csv, DataFrame, concat
 import numpy as np
+import matplotlib.pyplot as plt
 label_encoder = None 
 
 def get_np_array(file_name):
@@ -141,17 +142,6 @@ class DecisionTree:
               return self.tree["children"][i].predict(X) 
         else:
           return self.tree["leaf_value"]
-  
-  def visualize_tree(self):
-    # Visualize the decision tree structure (e.g., using graphviz or other tools)
-    # Implement logic to generate a visual representation of the tree
-    pass
-      
-  def prune_tree(self):
-    # Prune the decision tree to reduce overfitting (optional)
-    # Implement logic to remove nodes that do not add significant value
-    pass
-      
 
 
 if __name__ == '__main__':
@@ -160,15 +150,53 @@ if __name__ == '__main__':
   X_test, y_test = get_np_array("test.csv")
   y_test = np.array([y[0] for y in y_test])
   types = ["cat","cat","cat","cat","cat","cont","cat","cat","cat","cont","cont","cont"]
-  max_depth = 12
-  tree = DecisionTree(max_depth = max_depth)
-  tree.fit(X_train,y_train,types)
-  train_correct = 0;
-  for i in range(X_train.shape[0]):
-    train_correct += (tree.predict(X_train[i]) == y_train[i])
-  print(f"Train Accuracy: {train_correct / X_train.shape[0] * 100}%")
-  
-  test_correct = 0;
-  for i in range(X_test.shape[0]):
-    test_correct += (tree.predict(X_test[i]) == y_test[i])
-  print(f"Test Accuracy: {test_correct / X_test.shape[0] * 100}%")
+  depths = [5, 10, 15, 20, 25]
+  train_accuracies = []
+  test_accuracies = []
+  only_win_accuracies = []
+  only_loss_accuracies = []
+  for depth in depths:
+    max_depth = depth
+    tree = DecisionTree(max_depth = max_depth)
+    tree.fit(X_train,y_train,types)
+    train_correct = 0
+    for i in range(X_train.shape[0]):
+      train_correct += (tree.predict(X_train[i]) == y_train[i])
+    train_accuracy = train_correct / X_train.shape[0] * 100
+    
+    test_correct = 0
+    only_win_correct = 0
+    only_loss_correct = 0
+    for i in range(X_test.shape[0]):
+      prediction = tree.predict(X_test[i]) 
+      test_correct += (prediction == y_test[i])
+      only_win_correct += (1 == y_test[i])   
+      only_loss_correct += (0 == y_test[i])
+      
+    test_accuracy = test_correct / X_test.shape[0] * 100
+    only_win_accuracy = only_win_correct / X_test.shape[0] * 100
+    only_loss_accuracy = only_loss_correct / X_test.shape[0] * 100
+    only_win_accuracies.append(only_win_accuracy)
+    only_loss_accuracies.append(only_loss_accuracy)
+    
+    
+    train_accuracies.append(train_accuracy)
+    test_accuracies.append(test_accuracy)
+    print(f"Max Depth: {max_depth}")
+    print(f"Train Accuracy: {train_accuracy}%")
+    print(f"Test Accuracy: {test_accuracy}%")
+    print(f"Only Win Accuracy: {only_win_accuracy}%")
+    print(f"Only Loss Accuracy: {only_loss_accuracy}%")
+
+    
+  plt.plot(depths, train_accuracies, label='Training Accuracy')
+  plt.plot(depths, test_accuracies, label='Test Accuracy')
+  plt.plot(depths, only_win_accuracies, label='Only Win Accuracy')
+  plt.plot(depths, only_loss_accuracies, label='Only Loss Accuracy')
+
+  plt.xlabel("Maximum Depth of the Tree")
+  plt.ylabel("Accuracy (in %)")
+  plt.title('Decision Trees')
+  plt.legend()
+  plt.savefig('a.png')
+  plt.show()
